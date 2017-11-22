@@ -1,0 +1,13 @@
+ msisdn, name, surname, ref_no
+  27796222802, frans, ntsowe, 12320
+27796222803, frans, ntsowe, 123202
+27796222804, frans1, ntsowe, 123202
+27796222805, frans2, ntsowe, 123202
+27796222806, frans4, ntsowe, 123202
+27796222806, frans3, ntsowe, 123202
+27796222807, frans5, ntsowe, 123202
+27796222808, frans6, ntsowe, 123202
+27796222808, frans7, ntsowe, 123202
+27796222810, frans8, ntsowe, 123202
+27796222811, frans9, ntsowe, 123202
+27796222812, frans11, ntsowe, 1232022
