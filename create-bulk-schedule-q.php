@@ -1,21 +1,21 @@
 #!/usr/bin/php -q
 <?php
-require_once 'lib.php';
-require_once 'config2.php';
+require_once 'sms_queueConfig.php';
+require_once 'config_aggregation.php';
 
 if(!ini_get('date.timezone'))
 {
 	date_default_timezone_set('GMT');
 }
 
-$log = '/var/log/create-schedule-bulk-q.log';
+$log = '/var/log/create-schedule-bulk-sa.log';
 
 function help()
 {
 	global $log;
 
 	echo chr(10);
-	echo "Process creating a winners queue daemon.".chr(10);
+	echo "Process creating a shedule queue daemon.".chr(10);
 	echo chr(10);
 	echo "Usage:".chr(10);
 	echo chr(9)."./create-q.php [options]".chr(10);
@@ -62,11 +62,17 @@ else
 		file_put_contents($log, chr(9).'-- Database error: '.$conn->error.chr(10), FILE_APPEND);
 		return 1;
 	}//end if
-	
+
+        if(!($conn_aggregate = new mysqli(DB_HOST1, DB_USER1, DB_PASS1, DB_NAME1)))
+	{
+		file_put_contents($log, chr(9).'-- Database error: '.$conn->error.chr(10), FILE_APPEND);
+		return 1;
+	}//end if
+        
 	while (1){
-            
+
 		$query = "SELECT * FROM scheduled_messages WHERE schedule_date=NOW() and status='Q' LIMIT 1000";
-		if(!($rs = $conn->query($query)))
+		if(!($rs = $conn_aggregate->query($query)))
 		{
 			file_put_contents($log, chr(9).'-- Database error: '.$conn->error.chr(10), FILE_APPEND);
 			return 1;
@@ -77,28 +83,32 @@ else
 			$from_add = '';
 			for($data = 0; $data < $rs->num_rows; $data++)
 			{
-				$rs->data_seek($data);				
+				$rs->data_seek($data);
 				$row = $rs->fetch_assoc();
-				
-				
+
+
 				$msg = '';
 				$service = '';
-                               
-				$sample = "INSERT INTO bulkmessages(id, message, msisdn, queued, message_date, company, username) "
-                                        . "VALUES('','".$row['message']."','".$row['msisdn']."', 'Q','now()','".$row['company']."','".$row['username']."')";
-					
-				
+                             //   $message = mysql_real_escape_string($row['message']);
+
+				//$sample = "INSERT INTO bulkmessages(id, message, msisdn, queued, message_date, company, username) "
+                               //         . "VALUES('','$message','".$row['msisdn']."', 'Q','now()','".$row['company']."','".$row['username']."')";
+
+                                $sample = "INSERT INTO customer_messages(id, message, msisdn, campaign_name, customer_group , queued, message_date, company, username) "
+                                        . "VALUES('','".$row['message']."','".$row['msisdn']."','".$row['campaign_name']."','".$row['customer_group']."', 'Q', NOW(),'".$row['company']."','".$row['username']."')";
+
+
 				if(!$conn->query($sample))
 				{
 					file_put_contents($log, chr(9).'-- Database error: '.$conn->error.chr(10), FILE_APPEND);
-				
+
                                         return 1;
                                 }
-				$query = "UPDATE scheduled_messages SET status='P' and processed_date=NOW() WHERE id='".$row['id']."'";
-				if(!$conn->query($query))
+				$query = "UPDATE scheduled_messages SET status='P', processed_date=NOW() WHERE id='".$row['id']."'";
+				if(!$conn_aggregate->query($query))
 				{
 					file_put_contents($log, chr(9).'-- Database error: '.$conn->error.chr(10), FILE_APPEND);
-				
+
                                         return 1;
                                 }
 			}//end for
@@ -109,4 +119,5 @@ else
 	}//end while
 	file_put_contents($log, chr(10).'Status: Ending process - '.date("Y-m-d H:i:s").chr(10), FILE_APPEND);
 }//end else
+$conn_aggregate->close();
 $conn->close();
